@@ -1,29 +1,32 @@
-# ARKA Studio — ücretsiz uygulama merkezi başlangıç projesi
+# KODORA v2 — Cloudflare Pages + Supabase
 
-## İçerik
-- Koyu temalı, mobil uyumlu uygulama vitrini
-- Android / iOS / Web / Masaüstü filtreleri
-- Her uygulama için açıklama, sürüm, rehber metni ve indirme bağlantısı alanı
-- Harici indirme bağlantıları için güvenli yeni sekme ayarları
+## 1) Supabase bağlantısı
+1. `config.js` dosyasını aç.
+2. `PUBLISHABLE_KEY_BURAYA` metnini kendi `sb_publishable_...` anahtarınla değiştir.
+3. Project URL zaten projene göre doldurulmuştur.
+4. `service_role`, `secret` veya `sb_secret_...` anahtarını asla tarayıcı koduna koyma.
 
-## Kendi bilgilerinle düzenleme
-1. `index.html` dosyasında `ARKA Studio` adını, açıklamaları ve destek e-posta adresini değiştir.
-2. `apps.js` dosyasını açıp örnek uygulamaları kendi uygulamalarınla değiştir.
-3. Uygulama indirme bağlantılarını `links` alanına `https://...` biçiminde ekle.
-4. `styles.css` içindeki renkleri ve görünümü dilediğin gibi özelleştir.
+## 2) Mevcut Supabase SQL şeması
+Bu sürüm, önceki kurulumda oluşturduğun `profiles`, `apps`, `comments` tablolarını ve `is_admin()` fonksiyonunu kullanır. SQL kurulumunu tekrar çalıştırma.
 
-## Ücretsiz yayınlama: Cloudflare Pages
-1. Bu klasörü bir GitHub deposuna yükle.
-2. Cloudflare hesabı açıp Workers & Pages bölümünden Pages projesi oluştur.
-3. GitHub deponu bağla.
-4. Framework preset: **None**; Build command: boş; Build output directory: `/`.
-5. Deploy ile yayınla. Her değişiklikte yeniden dağıtım yapılabilir.
+## 3) Cloudflare Pages'e yükleme
+1. GitHub'daki `uygulama-merkezim` deposunu aç.
+2. Eski site dosyalarının yedeğini al.
+3. Bu klasördeki `index.html`, `styles.css`, `script.js`, `config.js` dosyalarını depo köküne yükleyip eskilerinin yerine koy.
+4. Commit yap. Cloudflare Pages otomatik yeniden dağıtım yapacaktır.
 
-Alternatif: GitHub Pages ile de statik site olarak yayınlayabilirsin.
+Build ayarları: Framework preset `None`, Build command boş, Build output directory `.`.
 
-## Önemli yayınlama notları
-- iOS uygulamaları için kullanıcıları App Store veya TestFlight gibi resmi dağıtım sayfalarına yönlendir. Web sitesinden herkese açık şekilde doğrudan iPhone uygulaması dosyası kurdurmak normal dağıtım yöntemi değildir.
-- Android APK paylaşacaksan yalnızca kendi imzaladığın, güvenilir ve güncel dosyayı yayınla; sürüm ve izinleri açıkça belirt. Google Play bağlantısı da kullanabilirsin.
-- İndirme bağlantılarını yayınlamadan önce test et. Örnek bağlantılar bilerek eklenmedi.
-- Gizlilik politikası, kullanım koşulları ve destek sayfalarını uygulamalarının veri toplama davranışına göre ekle.
-- Bu başlangıç projesinde uygulama dosyaları barındırılmaz; indirme düğmeleri verdiğin resmi bağlantılara gider.
+## 4) Önemli güvenlik notları
+- Publishable key tarayıcıda kullanılmak üzere tasarlanmıştır. Veritabanı güvenliği RLS politikalarıyla sağlanır.
+- `service_role` / secret key'i hiçbir zaman siteye veya GitHub'a koyma.
+- Admin rolü yalnızca Supabase SQL Editor gibi güvenilir yönetim kanalından verilmelidir. Sitede admin kayıt ekranı yoktur.
+- Admin paneli sadece `profiles.role = 'admin'` olan giriş yapmış kullanıcılara görünür; veritabanı RLS kuralları da işlemleri ayrıca denetler.
+- Yorumlarda kullanıcı adı için `profiles` ilişkisi okunur. Eğer Supabase sorgusu ilişkiyi bulamazsa, `comments` sorgusundaki `profiles(display_name)` bölümünü kaldırıp yalnızca `id,user_id,body,created_at` seçebilirsin.
+- E-posta doğrulaması açıksa yeni üyeler, Supabase'in gönderdiği doğrulama e-postasını onaylamalıdır.
+
+## 5) Test
+- Önce kendi kurucu hesabınla giriş yap. Yönetim paneli görünmeli.
+- Bir test uygulaması ekle ve yayınla.
+- Çıkış yapıp başka normal kullanıcı hesabıyla giriş yap. Admin paneli görünmemeli.
+- Normal kullanıcı uygulamalara yorum yazabilmeli, uygulama ekleyememeli.

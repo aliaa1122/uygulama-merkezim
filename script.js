@@ -1,38 +1,52 @@
-const grid = document.getElementById("app-grid");
-const filters = document.querySelectorAll(".filter");
-document.getElementById("year").textContent = new Date().getFullYear();
+(() => {
+  const cfg = window.KODORA_CONFIG || {};
+  const ready = cfg.supabaseUrl && cfg.supabasePublishableKey && cfg.supabasePublishableKey !== 'PUBLISHABLE_KEY_BURAYA';
+  const client = ready ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabasePublishableKey) : null;
+  const $ = (id) => document.getElementById(id);
+  let currentUser = null, isAdmin = false, apps = [], platform = 'all', authMode = 'login';
+  $('year').textContent = new Date().getFullYear();
 
-function safeLink(url) {
-  return typeof url === "string" && /^https:\/\/\S+/i.test(url);
-}
-function render(filter = "all") {
-  const visible = apps.filter(app => filter === "all" || app.platforms.includes(filter));
-  grid.innerHTML = "";
-  if (!visible.length) {
-    grid.innerHTML = '<p class="empty">Bu platform için henüz uygulama eklenmemiş.</p>';
-    return;
+  const escapeHtml = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const slugify = value => value.toLocaleLowerCase('tr').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'uygulama';
+  let toastTimer;
+  function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2800)}
+  function setAuthMessage(message){$('auth-message').textContent=message}
+  function setAuthMode(mode){authMode=mode;const signup=mode==='signup';$('auth-title').textContent=signup?'Hesap oluştur':'Giriş yap';$('auth-submit').textContent=signup?'Kayıt ol':'Giriş yap';$('name-field').classList.toggle('hidden',!signup);$('display-name').required=signup;$('login-tab').classList.toggle('active',!signup);$('signup-tab').classList.toggle('active',signup);setAuthMessage('')}
+  function showAuth(){setAuthMode('login');$('auth-dialog').showModal()}
+  $('open-auth').addEventListener('click',showAuth);
+  $('login-tab').addEventListener('click',()=>setAuthMode('login'));
+  $('signup-tab').addEventListener('click',()=>setAuthMode('signup'));
+  $('auth-dialog').addEventListener('click',e=>{if(e.target===$('auth-dialog'))$('auth-dialog').close()});
+
+  async function loadSession(){if(!client)return;const {data:{session}}=await client.auth.getSession();await applySession(session?.user||null);client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>applySession(session?.user||null),0)});}
+  async function applySession(user){currentUser=user;isAdmin=false;if(user){const {data}=await client.from('profiles').select('display_name,role').eq('id',user.id).maybeSingle();isAdmin=data?.role==='admin';}
+    $('account-area').innerHTML=user?`<span class="small muted">${escapeHtml(user.email)}</span><button class="button button-quiet" id="logout">Çıkış</button>`:`<button class="button button-quiet" id="open-auth">Giriş yap</button>`;
+    $('open-auth')?.addEventListener('click',showAuth);$('logout')?.addEventListener('click',async()=>{await client.auth.signOut();toast('Çıkış yapıldı.');});
+    $('admin-panel').classList.toggle('hidden',!isAdmin);await loadApps();
   }
-  visible.forEach(app => {
-    const links = Object.entries(app.links || {}).filter(([platform, url]) => app.platforms.includes(platform) && safeLink(url));
-    const actions = links.length
-      ? links.map(([platform, url]) => `<a class="small-button ${platform === links[0][0] ? "" : "alt"}" href="${url}" target="_blank" rel="noopener noreferrer">${platform} ↗</a>`).join("")
-      : '<span class="small-button alt">İndirme bağlantısı yakında</span>';
-    const card = document.createElement("article");
-    card.className = "app-card";
-    card.innerHTML = `
-      <div class="app-top"><div class="app-icon">${app.icon || "▣"}</div><span class="status">${app.status || "Yayında"}</span></div>
-      <h3>${escapeHtml(app.name)}</h3><p>${escapeHtml(app.description)}</p>
-      <div class="tags">${app.platforms.map(p => `<span class="tag">${escapeHtml(p)}</span>`).join("")}<span class="tag">v${escapeHtml(app.version || "1.0")}</span></div>
-      <p class="guide-copy">${escapeHtml(app.guide || "Kullanım rehberi yakında.")}</p>
-      <div class="card-actions">${actions}</div>`;
-    grid.appendChild(card);
+  $('auth-form').addEventListener('submit',async e=>{e.preventDefault();if(!client)return;const email=$('email').value.trim(),password=$('password').value;const button=$('auth-submit');button.disabled=true;setAuthMessage('İşleniyor…');
+    try{if(authMode==='signup'){const display_name=$('display-name').value.trim();const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name}}});if(error)throw error;setAuthMessage(data.session?'Hesabın oluşturuldu.':'Kayıt başarılı. E-postana doğrulama bağlantısı gönderildiyse onayla, sonra giriş yap.');if(data.session)$('auth-dialog').close();}
+    else{const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;$('auth-dialog').close();toast('Giriş başarılı.');}}
+    catch(err){setAuthMessage(err.message||'Bir hata oluştu.')}finally{button.disabled=false;}
   });
-}
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-}
-filters.forEach(button => button.addEventListener("click", () => {
-  filters.forEach(item => item.classList.toggle("active", item === button));
-  render(button.dataset.filter);
-}));
-render();
+
+  async function loadApps(){if(!client){$('apps-list').innerHTML='<div class="empty-state">Önce config.js dosyasına Supabase Publishable key değerini ekle.</div>';return;}
+    const {data,error}=await client.from('apps').select('*').order('created_at',{ascending:false});if(error){$('apps-list').innerHTML=`<div class="empty-state">Uygulamalar yüklenemedi: ${escapeHtml(error.message)}</div>`;return;}apps=data||[];renderApps();if(isAdmin)renderAdminApps();}
+  function renderApps(){const visible=apps.filter(a=>a.published||isAdmin).filter(a=>platform==='all'||a.platform===platform);$('app-count').textContent=`${visible.length} uygulama`;
+    $('apps-list').innerHTML=visible.length?visible.map(a=>`<article class="app-card"><div class="app-icon">${escapeHtml((a.title||'K').trim().charAt(0).toUpperCase())}</div><h3>${escapeHtml(a.title)}</h3><p class="app-meta">${escapeHtml(a.platform||'Platform belirtilmedi')} · ${escapeHtml(a.version||'Sürüm belirtilmedi')}</p><p class="app-description">${escapeHtml(a.description||'Bu uygulama için henüz açıklama eklenmedi.')}</p>${a.install_notes||a.update_notes?`<details class="app-notes"><summary>Kurulum ve güncelleme notları</summary>${a.install_notes?`<p><strong>Kurulum:</strong>\n${escapeHtml(a.install_notes)}</p>`:''}${a.update_notes?`<p><strong>Güncellemeler:</strong>\n${escapeHtml(a.update_notes)}</p>`:''}</details>`:''}<div class="card-actions">${a.download_url?`<a class="button button-primary" href="${escapeHtml(a.download_url)}" target="_blank" rel="noopener noreferrer">İndir ↗</a>`:''}</div><div class="comment-area"><h4>Yorumlar</h4><div id="comments-${a.id}"><span class="small muted">Yorumlar yükleniyor…</span></div>${currentUser?`<form class="comment-form" data-app="${a.id}"><input maxlength="1000" required placeholder="Yorumunu yaz…" aria-label="Yorum"/><button class="button button-quiet">Gönder</button></form>`:'<p class="small muted">Yorum yazmak için giriş yap.</p>'}</div></article>`).join(''):'<div class="empty-state">Bu kategoride henüz yayınlanmış uygulama yok.</div>';
+    visible.forEach(a=>loadComments(a.id));document.querySelectorAll('.comment-form').forEach(form=>form.addEventListener('submit',submitComment));}
+  async function loadComments(appId){const target=$(`comments-${appId}`);if(!target)return;const {data,error}=await client.from('comments').select('id,user_id,body,created_at').eq('app_id',appId).order('created_at',{ascending:false}).limit(30);if(error){target.textContent='Yorumlar şu anda yüklenemiyor.';return;}const ids=[...new Set((data||[]).map(c=>c.user_id))];let names={};if(ids.length){const p=await client.from('profiles').select('id,display_name').in('id',ids);(p.data||[]).forEach(profile=>names[profile.id]=profile.display_name||'Kullanıcı');}target.innerHTML=(data||[]).length?data.map(c=>`<div class="comment"><strong>${escapeHtml(names[c.user_id]||'Kullanıcı')}</strong>: ${escapeHtml(c.body)} ${isAdmin?`<button class="button button-danger" data-delete-comment="${c.id}" style="float:right;padding:2px 7px">Sil</button>`:''}</div>`).join(''):'<p class="small muted">Henüz yorum yok.</p>';target.querySelectorAll('[data-delete-comment]').forEach(btn=>btn.addEventListener('click',async()=>{if(!isAdmin||!confirm('Bu yorumu silmek istiyor musun?'))return;const {error}=await client.from('comments').delete().eq('id',btn.dataset.deleteComment);if(error)toast(error.message);else{toast('Yorum silindi.');loadComments(appId)}}));}
+  async function submitComment(e){e.preventDefault();if(!currentUser){showAuth();return;}const form=e.currentTarget,input=form.querySelector('input'),body=input.value.trim();if(!body)return;const {error}=await client.from('comments').insert({app_id:form.dataset.app,user_id:currentUser.id,body});if(error){toast(error.message);return;}input.value='';toast('Yorum eklendi.');loadComments(form.dataset.app);}
+  $('filters').addEventListener('click',e=>{const btn=e.target.closest('[data-platform]');if(!btn)return;platform=btn.dataset.platform;document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x===btn));renderApps();});
+
+  function renderAdminApps(){$('admin-app-list').innerHTML=apps.length?apps.map(a=>`<div class="admin-row"><div><strong>${escapeHtml(a.title)}</strong><div class="small muted">${escapeHtml(a.platform||'')} · ${a.published?'Yayında':'Taslak'}</div></div><div class="admin-row-actions"><button class="button button-quiet" data-edit="${a.id}">Düzenle</button><button class="button button-danger" data-delete="${a.id}">Sil</button></div></div>`).join(''):'<p class="small muted">Henüz uygulama eklenmemiş.</p>';
+    $('admin-app-list').querySelectorAll('[data-edit]').forEach(btn=>btn.addEventListener('click',()=>editApp(btn.dataset.edit)));$('admin-app-list').querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>deleteApp(btn.dataset.delete)));}
+  function editApp(id){const a=apps.find(x=>x.id===id);if(!a)return;$('edit-id').value=a.id;$('app-title').value=a.title;$('app-platform').value=a.platform||'Android';$('app-version').value=a.version||'';$('app-url').value=a.download_url||'';$('app-description').value=a.description||'';$('app-install').value=a.install_notes||'';$('app-updates').value=a.update_notes||'';$('app-published').checked=!!a.published;$('cancel-edit').classList.remove('hidden');$('app-title').focus();}
+  function resetAppForm(){$('app-form').reset();$('edit-id').value='';$('app-published').checked=true;$('cancel-edit').classList.add('hidden');}
+  $('cancel-edit').addEventListener('click',resetAppForm);
+  $('app-form').addEventListener('submit',async e=>{e.preventDefault();if(!isAdmin){toast('Bu işlem için admin yetkisi gerekiyor.');return;}const title=$('app-title').value.trim(),id=$('edit-id').value;const payload={title,slug:slugify(title),platform:$('app-platform').value,version:$('app-version').value.trim(),download_url:$('app-url').value.trim()||null,description:$('app-description').value.trim(),install_notes:$('app-install').value.trim(),update_notes:$('app-updates').value.trim(),published:$('app-published').checked};$('admin-message').textContent='Kaydediliyor…';const result=id?await client.from('apps').update(payload).eq('id',id):await client.from('apps').insert(payload);if(result.error){$('admin-message').textContent=result.error.message;return;}toast(id?'Uygulama güncellendi.':'Uygulama eklendi.');$('admin-message').textContent='Kaydedildi.';resetAppForm();await loadApps();});
+  async function deleteApp(id){if(!isAdmin||!confirm('Uygulamayı ve ona ait yorumları silmek istiyor musun?'))return;const {error}=await client.from('apps').delete().eq('id',id);if(error){toast(error.message);return;}toast('Uygulama silindi.');await loadApps();}
+
+  if(!ready){$('apps-list').innerHTML='<div class="empty-state">Bağlantıyı tamamlamak için config.js dosyasındaki PUBLISHABLE_KEY_BURAYA alanını kendi Publishable key değerinle değiştir.</div>';}
+  else loadSession();
+})();
