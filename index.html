@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Bağımsız uygulamalar, indirme bağlantıları ve kullanım rehberleri.">
+  <title>ARKA Studio — Uygulamalar</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="ARKA Studio ana sayfa"><span class="brand-mark">A</span><span>ARKA<span class="muted"> STUDIO</span></span></a>
+    <nav><a href="#apps">Uygulamalar</a><a href="#guides">Rehberler</a><a href="#about">Hakkında</a></nav>
+    <a class="nav-cta" href="mailto:destek@example.com">Destek</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow"><span class="dot"></span> BAĞIMSIZ UYGULAMA GELİŞTİRİCİSİ</div>
+      <h1>Fikirler, <span class="gradient">kullanışlı uygulamalara</span> dönüşür.</h1>
+      <p class="hero-copy">Geliştirdiğim uygulamaları keşfet, cihazına uygun sürümü bul ve kullanım rehberleriyle hemen başla.</p>
+      <div class="hero-actions"><a class="button primary" href="#apps">Uygulamaları keşfet <span>↗</span></a><a class="button secondary" href="#guides">Kullanım rehberleri</a></div>
+      <div class="hero-foot"><span>● Düzenli güncellemeler</span><span>● Açık ve anlaşılır rehberler</span><span>● Platforma özel bağlantılar</span></div>
+    </section>
+
+    <section class="section" id="apps">
+      <div class="section-head"><div><div class="eyebrow">UYGULAMA KÜTÜPHANESİ</div><h2>Projelerim</h2></div><span class="section-note">Uygulamalar ve indirme seçenekleri</span></div>
+      <div class="filters" role="group" aria-label="Platform filtresi">
+        <button class="filter active" data-filter="all">Tümü</button>
+        <button class="filter" data-filter="Android">Android</button>
+        <button class="filter" data-filter="iOS">iOS</button>
+        <button class="filter" data-filter="Web">Web</button>
+        <button class="filter" data-filter="Desktop">Masaüstü</button>
+      </div>
+      <div class="app-grid" id="app-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="guide-section" id="guides">
+      <div class="section-head"><div><div class="eyebrow">ADIM ADIM YARDIM</div><h2>Nasıl kullanılır?</h2></div><span class="section-note">Başlangıç için kısa rehberler</span></div>
+      <div class="guide-grid">
+        <article class="guide-card"><span class="guide-number">01</span><div class="guide-icon">↓</div><h3>Uygulamayı indir</h3><p>Uygulama kartından cihazına uygun resmi indirme veya mağaza bağlantısını seç.</p></article>
+        <article class="guide-card"><span class="guide-number">02</span><div class="guide-icon">✳</div><h3>Kurulumu tamamla</h3><p>İndirme sayfasındaki platforma özel kurulum adımlarını takip et.</p></article>
+        <article class="guide-card"><span class="guide-number">03</span><div class="guide-icon">↗</div><h3>Özellikleri keşfet</h3><p>Her uygulamanın rehberini inceleyerek temel özellikleri öğren.</p></article>
+      </div>
+      <p class="guide-hint">Uygulamaya özel rehberler eklemek için <code>apps.js</code> dosyasındaki <code>guide</code> alanını düzenle.</p>
+    </section>
+
+    <section class="about" id="about"><div><div class="eyebrow">ARKA PLAN</div><h2>Basit, faydalı ve<br><span class="gradient">özenle geliştirilmiş.</span></h2></div><p>Bu alanı kendini, geliştirme yaklaşımını ve projelerinin amacını anlatmak için kullan. Ziyaretçilerin sana ulaşabilmesi için iletişim bilgilerini de ekleyebilirsin.</p></section>
+  </main>
+
+  <footer><a class="brand" href="#"><span class="brand-mark">A</span><span>ARKA<span class="muted"> STUDIO</span></span></a><span>© <span id="year"></span> ARKA Studio. Tüm hakları saklıdır.</span><a href="mailto:destek@example.com">İletişim ↗</a></footer>
+  <script src="apps.js"></script><script src="script.js"></script>
+</body>
+</html>
