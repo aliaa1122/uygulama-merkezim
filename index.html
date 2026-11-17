@@ -10,7 +10,7 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#top"><span class="brand-mark">K</span><span>KODORA</span></a>
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M9 6h8v12L29 6h9L23 20l15 14H27L17 23v11H9z" fill="currentColor"/></svg></span><span>KODORA</span></a>
     <nav><a href="#apps">Uygulamalar</a><a href="#about">Hakkında</a></nav>
     <div id="account-area"><button class="button button-light" id="open-auth">Giriş yap</button></div>
   </header>
@@ -27,7 +27,10 @@
           <label>Platform<select id="app-platform"><option>Android</option><option>iOS</option><option>Web</option><option>Desktop</option></select></label>
           <label>Sürüm<input id="app-version" maxlength="30" placeholder="1.0.0"></label>
           <label>İndirme bağlantısı<input id="app-url" type="url" placeholder="https://…"></label>
+          <label>Uygulama simgesi<input id="app-icon-file" type="file" accept="image/png,image/jpeg,image/webp"></label>
+          <label>Kapak görseli<input id="app-cover-file" type="file" accept="image/png,image/jpeg,image/webp"></label>
         </div>
+        <p class="small muted upload-help">Görseller Supabase Storage alanına yüklenir. PNG, JPG veya WebP kullan; dosya başına en fazla 3 MB.</p>
         <label>Kısa açıklama<textarea id="app-description" rows="2" maxlength="600" placeholder="Uygulama ne işe yarıyor?"></textarea></label>
         <label>Kurulum rehberi<textarea id="app-install" rows="3" maxlength="3000" placeholder="Kurulum ve kullanım adımları"></textarea></label>
         <label>Güncelleme notları<textarea id="app-updates" rows="3" maxlength="3000" placeholder="Bu sürümde neler değişti?"></textarea></label>
